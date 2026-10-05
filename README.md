@@ -22,15 +22,33 @@ nothing. Every patch also checks the bytes it replaces before writing.
 xackery's [patched EQGraphicsDX9.dll](https://github.com/xackery/eq-core-dll/releases/tag/v0.0.1)
 works alongside this, but you no longer need it.
 
-## Building on Linux
+## Building
+
+Both platforms use the same pinned tools (`tools/requirements.txt`: zig, CMake, Ninja),
+installed from PyPI into `.tools/venv`. Only Python 3 is required; nothing is installed
+system-wide, and no Visual Studio or Windows SDK is needed.
+
+### Linux
 
 ```bash
-tools/setup-zig.sh   # once: installs zig into .tools/venv (no root needed)
-./build.sh           # produces build/dinput8.dll
+tools/setup-tools.sh   # once
+./build.sh             # produces build/dinput8.dll
 ```
 
 `build.sh` uses `i686-w64-mingw32-g++` if it is installed (e.g. `pacman -S mingw-w64-gcc`)
 and zig otherwise. Force one with `TOOLCHAIN=zig-x86-windows` or `TOOLCHAIN=mingw-i686`.
+
+### Windows (PowerShell)
+
+```powershell
+tools\setup-tools.ps1   # once
+.\build.ps1             # produces build\dinput8.dll
+```
+
+If script execution is blocked, run them as
+`powershell -ExecutionPolicy Bypass -File tools\setup-tools.ps1` (and likewise for `build.ps1`).
+Any of the tools can come from elsewhere instead: `ZIG` may point at a `zig.exe`, and
+`cmake`/`ninja` are picked up from `PATH` when the venv does not exist.
 
 ## Installing
 

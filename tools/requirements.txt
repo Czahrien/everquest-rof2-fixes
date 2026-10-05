@@ -1,0 +1,5 @@
+# Build tools installed into .tools/venv by tools/setup-tools.sh / tools\setup-tools.ps1.
+# Pinned so Linux and Windows builds use the same compiler.
+ziglang==0.16.0
+cmake==4.4.4
+ninja==1.13.2
