@@ -302,6 +302,59 @@ graphics DLL's `Direct3DCreate9` import, then the COM vtables: `IDirect3D9::Crea
 (slot 16) and `IDirect3DDevice9::Reset` (slot 16). Both rewrite
 `PresentationInterval`.
 
+### Mouse-look cursor confinement
+
+*Anchor: the cursor APIs and the mouse-look flag.*
+
+The import table answered the first question: `USER32!ClipCursor` is not imported, so
+the client never confines the cursor. Xrefs to `ShowCursor` and `SetCursorPos` then led
+to the two halves of mouse-look:
+
+- **Engage** (`0x518870`, plus a second variant at `0x5189F8`): loop `ShowCursor(0)` until
+  the cursor is hidden, `GetCursorPos`, save the position at `[0x15D3D00]+0x130/0x134`,
+  and copy the "mouse-look wanted" state into the flag at `0xDDF702`.
+- **Release** (`0x539F88`, in the per-frame input function): clear the flag, loop
+  `ShowCursor(1)`, and `SetCursorPos` back to the saved position. In this function `edi`
+  holds the address of `SetCursorPos` (loaded at `0x539F30`), so the release shows up as a
+  bare `call edi`.
+
+In between, the camera turns from DirectInput's relative deltas, and the hidden system
+cursor moves freely. `0xDDF702` has over 35 readers but only nine writers, which
+makes it a good "is mouse-look active" test.
+
+**Patch:** the per-frame DirectInput read (`0x5F9E30`) has exactly one caller
+(`0x539FDC`). That call is redirected to a wrapper that runs the original and then
+updates the clip: confine to the client rect (`GetClientRect` + `MapWindowPoints`) while
+the flag is set and the window is focused and not minimized, release it otherwise. The
+main window handle comes from the global `CreateWindowExA` result at `0xE67B08`. Two
+details matter for a system-wide resource like the cursor clip:
+
+- **Always release it.** It is dropped when mouse-look ends, on focus loss, on minimize,
+  and on `DLL_PROCESS_DETACH`, so a crash or alt-tab can't leave the desktop cursor
+  trapped.
+- **Don't re-apply every frame.** At several hundred fps, `GetClipCursor` + `EqualRect`
+  is cheap and `ClipCursor` (a pointer grab under Wine) is not, so it is only re-applied
+  when the current clip differs.
+
+**When the log says it worked but nothing changed.** The first test failed: the cursor
+still left the window. The log showed `ClipCursor` being called with the correct
+rectangle on every engage, so the DLL side was right and the problem was below it. Three
+environment checks found the cause:
+
+- `XDG_SESSION_TYPE=wayland` (KDE Plasma);
+- the Lutris game config used the system Wine (11.18 Staging);
+- the prefix's `user.reg` had no `HKCU\Software\Wine\Drivers\Graphics` override, so Wine
+  ran its X11 driver through XWayland.
+
+XWayland doesn't let X11 clients confine or warp the pointer, which also explained why
+the client's own `SetCursorPos` restore failed. The A/B test settled it: switching the
+prefix to Wine's native Wayland driver (`Graphics=wayland`) made `ClipCursor` effective,
+and only the Wayland driver *plus* the clip kept the cursor in the window. Either one
+alone still let it escape.
+
+The general lesson: once logging proves the expected API call happened, stop reading
+the client's code and start checking the layers under it.
+
 ## Patching techniques used
 
 | Technique | Where | Notes |
@@ -309,7 +362,7 @@ graphics DLL's `Direct3DCreate9` import, then the COM vtables: `IDirect3D9::Crea
 | 5-byte `jmp` over a prologue | CPU speed, frame limiter | Full replacement only; check the prologue has no relocated bytes |
 | IAT slot swap | `LoadLibraryA`, `CreateWindowExA`, `Direct3DCreate9` | Cleanest hook when the game calls through its own IAT |
 | Vtable slot swap | camera `SetFov`, physics step, D3D `CreateDevice`/`Reset` | Affects every instance of the class, which was always what was wanted |
-| Call-site redirection | collision pass (6 sites), `SetRange` | Retarget one `call rel32` without touching a shared function |
+| Call-site redirection | collision pass (6 sites), `SetRange`, per-frame mouse read | Retarget one `call rel32` without touching a shared function |
 | `call` + `nop` over an instruction | mouse-look stores | Needs a naked stub and dead scratch registers after the site |
 | Return-address arithmetic in a stub | FPS label check | Replaces a compare-and-branch when the branch doesn't fit |
 | Byte NOP | ultrawide branch | Smallest possible change when one branch is simply wrong |
@@ -340,3 +393,6 @@ Practical details:
 - Under Wine, a `dinput8.dll` proxy needs the `dinput8=n,b` override, and Lutris and a
   bare `wine` launch can behave differently. zig's compiler cache does not work under
   Wine at all, so the Windows build could only be smoke-tested there.
+- On a Wayland desktop, Wine's X11 driver (via XWayland) silently ignores `ClipCursor`
+  and `SetCursorPos`. Anything involving cursor position needs testing with the native
+  Wayland driver too, and on Windows.
