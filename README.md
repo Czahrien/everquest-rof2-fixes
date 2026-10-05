@@ -61,6 +61,20 @@ that two builds are otherwise identical:
 python3 tools/compare-dll.py linux/dinput8.dll windows/dinput8.dll
 ```
 
+### Continuous builds and releases
+
+GitHub Actions (`.github/workflows/build.yml`) builds the DLL on Linux and Windows for
+every push to `main` and every pull request, checks the two builds are equivalent with
+`tools/compare-dll.py`, and attaches `dinput8.dll` to the run as an artifact.
+
+Pushing a tag starting with `v` also publishes a GitHub Release with the DLL and its
+SHA-256 checksum:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## Installing
 
 1. Copy `build/dinput8.dll` into the folder that contains `eqgame.exe`.

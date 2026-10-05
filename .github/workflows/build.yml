@@ -1,0 +1,97 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned build tools
+        if: runner.os == 'Linux'
+        run: tools/setup-tools.sh
+
+      - name: Install pinned build tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/setup-tools.ps1
+
+      - name: Build
+        if: runner.os == 'Linux'
+        env:
+          TOOLCHAIN: zig-x86-windows  # don't switch to mingw if the runner has it
+        run: ./build.sh
+
+      - name: Build
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dinput8-${{ runner.os }}
+          path: build/dinput8.dll
+          if-no-files-found: error
+
+  compare:
+    name: Compare Linux and Windows builds
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Check the builds are equivalent
+        run: python3 tools/compare-dll.py artifacts/dinput8-Linux/dinput8.dll artifacts/dinput8-Windows/dinput8.dll
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: compare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dinput8-Linux
+          path: release
+
+      - name: Checksum
+        working-directory: release
+        run: sha256sum dinput8.dll > dinput8.dll.sha256
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/dinput8.dll
+            release/dinput8.dll.sha256
+          generate_release_notes: true
+          body: |
+            Copy `dinput8.dll` into the folder containing the RoF2 `eqgame.exe`. Under Wine,
+            set a DLL override `dinput8=n,b`. Settings are written to `rof2fixes.ini` on first
+            run; see the README for details.
+
+            Supports only the RoF2 `eqgame.exe` dated 2013-05-11 (PE timestamp `0x518DE58F`);
+            on any other build it logs a message and changes nothing.
