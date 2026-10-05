@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Runs zig from $ZIG, PATH, or the repo-local venv created by tools/setup-zig.sh.
+set -e
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "$ZIG" ]]; then exec "$ZIG" "$@"; fi
+if command -v zig >/dev/null 2>&1; then exec zig "$@"; fi
+venv_python="$here/../.tools/venv/bin/python"
+if [[ -x "$venv_python" ]]; then exec "$venv_python" -m ziglang "$@"; fi
+echo "zig not found: run tools/setup-zig.sh, put zig on PATH, or set ZIG" >&2
+exit 1

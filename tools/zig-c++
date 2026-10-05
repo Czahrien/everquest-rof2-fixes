@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec "$(dirname "${BASH_SOURCE[0]}")/zig" c++ -target x86-windows-gnu "$@"
