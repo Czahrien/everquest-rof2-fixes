@@ -48,11 +48,34 @@ void Write(uintptr_t address, const void* bytes, size_t size) {
   FlushInstructionCache(GetCurrentProcess(), target, size);
 }
 
-void WriteJump(uintptr_t from, const void* to) {
-  uint8_t jmp[5] = {0xE9};
-  int32_t rel = static_cast<int32_t>(reinterpret_cast<uintptr_t>(to) - (from + 5));
-  std::memcpy(jmp + 1, &rel, sizeof(rel));
-  Write(from, jmp, sizeof(jmp));
+uintptr_t FindImportSlot(uintptr_t module_base, const char* dll, const char* function) {
+  auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(module_base);
+  auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(module_base + dos->e_lfanew);
+  const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+  if (!dir.VirtualAddress) return 0;
+  for (auto* desc = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(module_base + dir.VirtualAddress);
+       desc->Name; ++desc) {
+    if (_stricmp(reinterpret_cast<const char*>(module_base + desc->Name), dll) != 0) continue;
+    auto* names = reinterpret_cast<const IMAGE_THUNK_DATA*>(module_base + desc->OriginalFirstThunk);
+    auto* slots = reinterpret_cast<IMAGE_THUNK_DATA*>(module_base + desc->FirstThunk);
+    for (; names->u1.AddressOfData; ++names, ++slots) {
+      if (IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)) continue;
+      auto* by_name = reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(module_base + names->u1.AddressOfData);
+      if (std::strcmp(reinterpret_cast<const char*>(by_name->Name), function) == 0)
+        return reinterpret_cast<uintptr_t>(&slots->u1.Function);
+    }
+  }
+  return 0;
 }
+
+static void WriteRel32(uintptr_t from, const void* to, uint8_t opcode) {
+  uint8_t insn[5] = {opcode};
+  int32_t rel = static_cast<int32_t>(reinterpret_cast<uintptr_t>(to) - (from + 5));
+  std::memcpy(insn + 1, &rel, sizeof(rel));
+  Write(from, insn, sizeof(insn));
+}
+
+void WriteJump(uintptr_t from, const void* to) { WriteRel32(from, to, 0xE9); }
+void WriteCall(uintptr_t from, const void* to) { WriteRel32(from, to, 0xE8); }
 
 }  // namespace mem

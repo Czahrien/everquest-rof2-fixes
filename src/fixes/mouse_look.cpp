@@ -65,10 +65,8 @@ void ApplyEqgame() {
   }
   for (uint32_t site : addr::kMouseTurnSpeedStores) {
     uintptr_t at = mem::Rebase(site);
-    uint8_t call[6] = {0xE8, 0, 0, 0, 0, 0x90};
-    int32_t rel = static_cast<int32_t>(reinterpret_cast<uintptr_t>(&MouseTurnStoreStub) - (at + 5));
-    __builtin_memcpy(call + 1, &rel, sizeof(rel));
-    mem::Write(at, call, sizeof(call));
+    mem::WriteCall(at, reinterpret_cast<void*>(&MouseTurnStoreStub));
+    mem::Write(at + 5, "\x90", 1);  // the replaced store was 6 bytes
   }
   Log("mouse_look: installed (scale %.2f)", g_config.mouse_look_scale);
 }

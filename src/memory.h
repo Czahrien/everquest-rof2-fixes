@@ -24,7 +24,12 @@ void WriteValue(uintptr_t address, T value) {
   Write(address, &value, sizeof(value));
 }
 
-// Overwrites the first 5 bytes at `from` with `jmp to`.
+// Address of the import address table slot for `function` imported from `dll` by the
+// module at `module_base`, or 0 if not found.
+uintptr_t FindImportSlot(uintptr_t module_base, const char* dll, const char* function);
+
+// Overwrites the 5 bytes at `from` with `jmp to` / `call to`.
 void WriteJump(uintptr_t from, const void* to);
+void WriteCall(uintptr_t from, const void* to);
 
 }  // namespace mem

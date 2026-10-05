@@ -36,6 +36,7 @@ void OnGraphicsDllLoaded(HMODULE module) {
   }
   cpu_speed::ApplyGfx(base);
   aspect_ratio::ApplyGfx(base);
+  vsync::ApplyGfx(base);
 }
 
 HMODULE WINAPI LoadLibraryAHook(LPCSTR name) {
@@ -70,6 +71,7 @@ void Initialize() {
   }
 
   aspect_ratio::ApplyEqgame();
+  frame_limiter::ApplyEqgame();
   mouse_look::ApplyEqgame();
   physics_rate::ApplyEqgame();
   window_resize::ApplyEqgame();

@@ -90,6 +90,17 @@ constexpr uint32_t kGameTimerPtr = 0x15D4418;
 constexpr uint32_t kLocalPlayerPtr = 0xDD2630;
 constexpr uint32_t kLocalPhysicsTimeFactor = 0xDE0A68;
 
+// Frame limiter (cdecl, no args), called once per frame. Uses MaxFPS (100 = unlimited)
+// or, while in the background, MaxBGFPS (100 = unlimited, 9 = paused).
+constexpr uint32_t kFrameLimiter = 0x517EE0;
+constexpr uint32_t kInBackground = 0xE67B42;  // byte
+constexpr uint32_t kMaxFps = 0xDE0D1C;
+constexpr uint32_t kMaxBackgroundFps = 0xDE0D20;
+// Advanced Display options: MaxFPS slider setup and change handler.
+constexpr uint32_t kSliderSetRange = 0x896930;            // CSliderWnd::SetRange, thiscall(int)
+constexpr uint32_t kMaxFpsSliderSetRangeCall = 0x616DCE;  // call SetRange (after push 5Bh)
+constexpr uint32_t kMaxFpsLabelCheck = 0x6156BD;          // cmp edi, 64h; jne +0Ch
+
 // IAT slots in eqgame.exe.
 constexpr uint32_t kIatLoadLibraryA = 0x9C0220;
 constexpr uint32_t kIatCreateWindowExA = 0x9C030C;

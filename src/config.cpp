@@ -25,6 +25,13 @@ static const char kDefaultIni[] =
     "; Aspect ratio up to which the FOV setting is used as-is (1.7778 = 16:9).\n"
     "HorPlusBaseAspect=1.7778\n"
     "\n"
+    "; Options > Advanced Display Max FPS slider goes to 199, with 200 = Unlimited, and\n"
+    "; frames are paced precisely (the original limiter only manages whole milliseconds).\n"
+    "ExtendedFpsSlider=1\n"
+    "; Sync presentation to the monitor refresh (the client has no vsync option).\n"
+    "; Set the Max FPS slider to Unlimited when using this.\n"
+    "VSync=0\n"
+    "\n"
     "; Make right-click mouse-look turn speed independent of frame rate.\n"
     "MouseLookFix=1\n"
     "; Turn speed multiplier. 1.0 matches the original feel at 30 fps.\n"
@@ -55,6 +62,8 @@ void LoadConfig(const char* ini_path) {
   }
 
   g_config.cpu_speed_fix = ReadBool(ini_path, "CpuSpeedFix", g_config.cpu_speed_fix);
+  g_config.extended_fps_slider = ReadBool(ini_path, "ExtendedFpsSlider", g_config.extended_fps_slider);
+  g_config.vsync = ReadBool(ini_path, "VSync", g_config.vsync);
   g_config.mouse_look_fix = ReadBool(ini_path, "MouseLookFix", g_config.mouse_look_fix);
   g_config.physics_rate_fix = ReadBool(ini_path, "PhysicsRateFix", g_config.physics_rate_fix);
   int rate = GetPrivateProfileIntA("Fixes", "PhysicsRate", g_config.physics_rate, ini_path);
@@ -80,9 +89,9 @@ void LoadConfig(const char* ini_path) {
   float scale = static_cast<float>(std::atof(buf));
   if (scale > 0.0f && scale <= 20.0f) g_config.mouse_look_scale = scale;
 
-  Log("config: CpuSpeedFix=%d AspectMode=%d HorPlusBaseAspect=%.4f MouseLookFix=%d "
+  Log("config: CpuSpeedFix=%d AspectMode=%d HorPlusBaseAspect=%.4f ExtendedFpsSlider=%d VSync=%d MouseLookFix=%d "
       "MouseLookScale=%.2f PhysicsRateFix=%d PhysicsRate=%d ResizeFix=%d UnlockMaxWindowSize=%d",
       g_config.cpu_speed_fix, static_cast<int>(g_config.aspect_mode),
-      g_config.hor_plus_base_aspect, g_config.mouse_look_fix, g_config.mouse_look_scale,
+      g_config.hor_plus_base_aspect, g_config.extended_fps_slider, g_config.vsync, g_config.mouse_look_fix, g_config.mouse_look_scale,
       g_config.physics_rate_fix, g_config.physics_rate, g_config.resize_fix, g_config.unlock_max_window_size);
 }

@@ -15,12 +15,20 @@ void ApplyEqgame();
 void ApplyGfx(uintptr_t gfx_base);
 }
 
+namespace frame_limiter {
+void ApplyEqgame();
+}
+
 namespace mouse_look {
 void ApplyEqgame();
 }
 
 namespace physics_rate {
 void ApplyEqgame();
+}
+
+namespace vsync {
+void ApplyGfx(uintptr_t gfx_base);
 }
 
 namespace window_resize {
