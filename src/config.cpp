@@ -36,6 +36,8 @@ static const char kDefaultIni[] =
     "MouseLookFix=1\n"
     "; Turn speed multiplier. 1.0 matches the original feel at 30 fps.\n"
     "MouseLookScale=1.0\n"
+    "; Keep the hidden cursor inside the game window during mouse-look.\n"
+    "MouseLookConfine=1\n"
     "\n"
     "; Run the player's movement physics at a fixed PhysicsRate steps per second.\n"
     "; Without this, jump height, falling, fall damage and levitation change with\n"
@@ -65,6 +67,7 @@ void LoadConfig(const char* ini_path) {
   g_config.extended_fps_slider = ReadBool(ini_path, "ExtendedFpsSlider", g_config.extended_fps_slider);
   g_config.vsync = ReadBool(ini_path, "VSync", g_config.vsync);
   g_config.mouse_look_fix = ReadBool(ini_path, "MouseLookFix", g_config.mouse_look_fix);
+  g_config.mouse_look_confine = ReadBool(ini_path, "MouseLookConfine", g_config.mouse_look_confine);
   g_config.physics_rate_fix = ReadBool(ini_path, "PhysicsRateFix", g_config.physics_rate_fix);
   int rate = GetPrivateProfileIntA("Fixes", "PhysicsRate", g_config.physics_rate, ini_path);
   if (rate >= 10 && rate <= 200) g_config.physics_rate = rate;
@@ -90,8 +93,8 @@ void LoadConfig(const char* ini_path) {
   if (scale > 0.0f && scale <= 20.0f) g_config.mouse_look_scale = scale;
 
   Log("config: CpuSpeedFix=%d AspectMode=%d HorPlusBaseAspect=%.4f ExtendedFpsSlider=%d VSync=%d MouseLookFix=%d "
-      "MouseLookScale=%.2f PhysicsRateFix=%d PhysicsRate=%d ResizeFix=%d UnlockMaxWindowSize=%d",
+      "MouseLookScale=%.2f MouseLookConfine=%d PhysicsRateFix=%d PhysicsRate=%d ResizeFix=%d UnlockMaxWindowSize=%d",
       g_config.cpu_speed_fix, static_cast<int>(g_config.aspect_mode),
-      g_config.hor_plus_base_aspect, g_config.extended_fps_slider, g_config.vsync, g_config.mouse_look_fix, g_config.mouse_look_scale,
+      g_config.hor_plus_base_aspect, g_config.extended_fps_slider, g_config.vsync, g_config.mouse_look_fix, g_config.mouse_look_scale, g_config.mouse_look_confine,
       g_config.physics_rate_fix, g_config.physics_rate, g_config.resize_fix, g_config.unlock_max_window_size);
 }

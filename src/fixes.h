@@ -19,6 +19,11 @@ namespace frame_limiter {
 void ApplyEqgame();
 }
 
+namespace mouse_confine {
+void ApplyEqgame();
+void Shutdown();
+}
+
 namespace mouse_look {
 void ApplyEqgame();
 }

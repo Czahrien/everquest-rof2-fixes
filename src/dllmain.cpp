@@ -73,6 +73,7 @@ void Initialize() {
   aspect_ratio::ApplyEqgame();
   frame_limiter::ApplyEqgame();
   mouse_look::ApplyEqgame();
+  mouse_confine::ApplyEqgame();
   physics_rate::ApplyEqgame();
   window_resize::ApplyEqgame();
 
@@ -114,6 +115,8 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
   if (reason == DLL_PROCESS_ATTACH) {
     DisableThreadLibraryCalls(instance);
     Initialize();
+  } else if (reason == DLL_PROCESS_DETACH) {
+    mouse_confine::Shutdown();  // never leave the cursor clipped after the game exits
   }
   return TRUE;
 }

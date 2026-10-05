@@ -12,6 +12,7 @@ memory at startup. No files are modified on disk.
 | `ExtendedFpsSlider` | The Max FPS slider stops at 99, and high caps are inaccurate | The slider is widened to 10–199 with 200 = Unlimited (was 100). The limiter, which slept whole milliseconds (144 → 6 ms → 166 fps), is replaced with a QueryPerformanceCounter-paced one. |
 | `VSync` | The client has no vsync option | Off by default. When enabled, `PresentationInterval` is forced to `D3DPRESENT_INTERVAL_ONE` in `CreateDevice` and `Reset`. |
 | `MouseLookFix` | Right-click mouse-look turns slower the higher the frame rate | The mouse delta is stored as a turn *speed* that physics then multiplies by frame time, so turning scales with 1/fps. The turn is applied to the heading directly, scaled to match 30 fps (`MouseLookScale`). |
+| `MouseLookConfine` | During mouse-look the hidden cursor keeps moving and can leave the window or monitor | The client hides the cursor but never clips it. While mouse-look is active and the game has focus, the cursor is clipped to the client area; the client already restores its position on release. |
 | `PhysicsRateFix` | Jumps barely leave the ground, falls do little or no damage, and levitation descends slower at high FPS | Movement physics applies friction once per step while gravity scales with step length, and a collision pass after each step decides whether you are grounded. The local player's physics step is run at a fixed `PhysicsRate` (60 steps/s) regardless of frame rate, with the collision pass after each step. |
 | `ResizeFix` | Resizing the window (e.g. under Wine) stretches the image and the mouse no longer lines up | The client never changes resolution on `WM_SIZE`. The main window is subclassed and, once a resize settles, the new client size goes through the same `ApplyResolution` path as the options window. |
 
@@ -87,6 +88,17 @@ git push origin v0.1.0
    In Lutris: Configure → Runner options → DLL overrides → `dinput8` = `n,b`.
    Running through Lutris (DXVK) is recommended: launching with plain `wine` from a shell
    has been seen to render without character/NPC models, independent of this DLL.
+
+   **Wayland desktops:** Wine's default X11 driver runs through XWayland, which ignores
+   cursor confinement and warping, so `MouseLookConfine` has no effect and the cursor can
+   leave the window during mouse-look. Wine's native Wayland driver honors both. Enable it
+   for the prefix with:
+   ```bash
+   WINEPREFIX=/path/to/prefix wine reg add 'HKCU\Software\Wine\Drivers' /v Graphics /d wayland /f
+   ```
+   (undo with `wine reg delete 'HKCU\Software\Wine\Drivers' /v Graphics /f`). Tested with
+   Wine 11.18 Staging on KDE Plasma: the Wayland driver plus `MouseLookConfine=1` keeps the
+   cursor in the window, and the client restores its position when mouse-look ends.
 3. Start the game. `rof2fixes.ini` (settings) and `rof2fixes.log` appear next to `eqgame.exe`.
    Check the log to see which fixes were installed.
 

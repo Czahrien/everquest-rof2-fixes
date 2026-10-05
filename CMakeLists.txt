@@ -20,6 +20,7 @@ add_library(dinput8 SHARED
   src/fixes/aspect_ratio.cpp
   src/fixes/cpu_speed.cpp
   src/fixes/frame_limiter.cpp
+  src/fixes/mouse_confine.cpp
   src/fixes/mouse_look.cpp
   src/fixes/physics_rate.cpp
   src/fixes/vsync.cpp

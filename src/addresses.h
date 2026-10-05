@@ -90,6 +90,14 @@ constexpr uint32_t kGameTimerPtr = 0x15D4418;
 constexpr uint32_t kLocalPlayerPtr = 0xDD2630;
 constexpr uint32_t kLocalPhysicsTimeFactor = 0xDE0A68;
 
+// Mouse-look. The flag is set while right-click mouse-look has the cursor hidden; the
+// cursor position at engage is saved at [0x15D3D00]+0x130/0x134 and restored on release.
+constexpr uint32_t kMouseLookActive = 0xDDF702;  // byte
+constexpr uint32_t kMainWindow = 0xE67B08;       // HWND returned by CreateWindowExA
+// Per-frame mouse input routine (DirectInput read; cdecl, no args) and its only call.
+constexpr uint32_t kProcessMouse = 0x5F9E30;
+constexpr uint32_t kProcessMouseCall = 0x539FDC;
+
 // Frame limiter (cdecl, no args), called once per frame. Uses MaxFPS (100 = unlimited)
 // or, while in the background, MaxBGFPS (100 = unlimited, 9 = paused).
 constexpr uint32_t kFrameLimiter = 0x517EE0;

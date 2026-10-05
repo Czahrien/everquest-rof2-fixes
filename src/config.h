@@ -14,6 +14,7 @@ struct Config {
   bool vsync = false;
   bool mouse_look_fix = true;
   float mouse_look_scale = 1.0f;
+  bool mouse_look_confine = true;
   bool physics_rate_fix = true;
   int physics_rate = 60;
   bool resize_fix = true;
