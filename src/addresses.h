@@ -55,6 +55,41 @@ constexpr uint32_t kCurrentWidth = 0xDDF658;
 constexpr uint32_t kCurrentHeight = 0xDDF65C;
 constexpr uint32_t kCurrentModeFlag = 0xDDF668;  // third arg of ApplyResolution
 
+// Mouse-look (CEverQuest mouse handler at 0x516D40). The four places it stores the
+// mouse X turn into the controlled spawn's SpeedHeading, each `fstp [eax+0x8C]`.
+// Physics (0x8D1E80) later does Heading += SpeedHeading * elapsed_ms * 0.02.
+constexpr uint32_t kMouseTurnSpeedStores[] = {0x516E66, 0x516E7A, 0x516F71, 0x516F84};
+namespace spawn {
+constexpr uint32_t kPhysicsTimer = 0x30;  // game time (ms) of the last physics step
+constexpr uint32_t kHeading = 0x80;       // 0..512
+constexpr uint32_t kSpeedHeading = 0x8C;  // heading units per 50 ms tick
+constexpr uint32_t kMount = 0x154;        // spawn being ridden, or null
+}  // namespace spawn
+
+// Movement physics. The object (vtable 0x9D7100) lives inside a larger game object;
+// slot 0x14 is the per-spawn step: thiscall (spawn*), ret 4. It computes
+// t = (now - spawn->PhysicsTimer) * 0.02, then applies friction/acceleration once
+// (0x8D2160, not time scaled) and integrates position by t.
+constexpr uint32_t kPhysicsVtbl = 0x9D7100;
+constexpr uint32_t kPhysicsStepSlot = 0x14;
+constexpr uint32_t kPhysicsStep = 0x8D11A0;
+constexpr float kPhysicsMsToTicks = 0.02f;
+// Per-spawn collision/ground pass run right after each physics step (thiscall on the
+// spawn, no args, returns 1). It can zero vertical velocity, so it must not run on
+// frames where the step was skipped. These are all of its call sites.
+constexpr uint32_t kSpawnCollision = 0x509050;
+constexpr uint32_t kSpawnCollisionCalls[] = {0x4878B0, 0x4878E1, 0x49CC96,
+                                             0x49CCD2, 0x49CD02, 0x49D49D};
+// The collision pass stamps the game clock into the display object every call.
+constexpr uint32_t kDisplayPtr = 0xDD2660;
+constexpr uint32_t kDisplayLastMoveTime = 0x154;
+constexpr uint32_t kGameClockMs = 0x809810;  // cdecl, no args
+// Timer object whose vtable slot 0 (thiscall, no args) returns game time in ms.
+constexpr uint32_t kGameTimerPtr = 0x15D4418;
+// Local player spawn, and the physics time factor stored for it each step (read by camera code).
+constexpr uint32_t kLocalPlayerPtr = 0xDD2630;
+constexpr uint32_t kLocalPhysicsTimeFactor = 0xDE0A68;
+
 // IAT slots in eqgame.exe.
 constexpr uint32_t kIatLoadLibraryA = 0x9C0220;
 constexpr uint32_t kIatCreateWindowExA = 0x9C030C;

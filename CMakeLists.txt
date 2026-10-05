@@ -19,6 +19,8 @@ add_library(dinput8 SHARED
   src/memory.cpp
   src/fixes/aspect_ratio.cpp
   src/fixes/cpu_speed.cpp
+  src/fixes/mouse_look.cpp
+  src/fixes/physics_rate.cpp
   src/fixes/window_resize.cpp
   src/dinput8.def
 )

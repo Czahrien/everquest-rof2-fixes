@@ -15,6 +15,14 @@ void ApplyEqgame();
 void ApplyGfx(uintptr_t gfx_base);
 }
 
+namespace mouse_look {
+void ApplyEqgame();
+}
+
+namespace physics_rate {
+void ApplyEqgame();
+}
+
 namespace window_resize {
 void ApplyEqgame();
 }

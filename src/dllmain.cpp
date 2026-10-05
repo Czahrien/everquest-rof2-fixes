@@ -70,6 +70,8 @@ void Initialize() {
   }
 
   aspect_ratio::ApplyEqgame();
+  mouse_look::ApplyEqgame();
+  physics_rate::ApplyEqgame();
   window_resize::ApplyEqgame();
 
   uintptr_t slot = mem::Rebase(addr::kIatLoadLibraryA);

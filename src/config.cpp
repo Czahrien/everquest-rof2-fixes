@@ -25,6 +25,17 @@ static const char kDefaultIni[] =
     "; Aspect ratio up to which the FOV setting is used as-is (1.7778 = 16:9).\n"
     "HorPlusBaseAspect=1.7778\n"
     "\n"
+    "; Make right-click mouse-look turn speed independent of frame rate.\n"
+    "MouseLookFix=1\n"
+    "; Turn speed multiplier. 1.0 matches the original feel at 30 fps.\n"
+    "MouseLookScale=1.0\n"
+    "\n"
+    "; Run the player's movement physics at a fixed PhysicsRate steps per second.\n"
+    "; Without this, jump height, falling, fall damage and levitation change with\n"
+    "; frame rate. The rate picks which frame rate's behavior you get everywhere.\n"
+    "PhysicsRateFix=1\n"
+    "PhysicsRate=60\n"
+    "\n"
     "; Re-apply the render resolution when the window is resized (e.g. by the Wine\n"
     "; window manager), instead of stretching the old backbuffer.\n"
     "ResizeFix=1\n"
@@ -44,6 +55,10 @@ void LoadConfig(const char* ini_path) {
   }
 
   g_config.cpu_speed_fix = ReadBool(ini_path, "CpuSpeedFix", g_config.cpu_speed_fix);
+  g_config.mouse_look_fix = ReadBool(ini_path, "MouseLookFix", g_config.mouse_look_fix);
+  g_config.physics_rate_fix = ReadBool(ini_path, "PhysicsRateFix", g_config.physics_rate_fix);
+  int rate = GetPrivateProfileIntA("Fixes", "PhysicsRate", g_config.physics_rate, ini_path);
+  if (rate >= 10 && rate <= 200) g_config.physics_rate = rate;
   g_config.resize_fix = ReadBool(ini_path, "ResizeFix", g_config.resize_fix);
   g_config.unlock_max_window_size =
       ReadBool(ini_path, "UnlockMaxWindowSize", g_config.unlock_max_window_size);
@@ -61,8 +76,13 @@ void LoadConfig(const char* ini_path) {
   float base = static_cast<float>(std::atof(buf));
   if (base >= 1.0f && base <= 4.0f) g_config.hor_plus_base_aspect = base;
 
-  Log("config: CpuSpeedFix=%d AspectMode=%d HorPlusBaseAspect=%.4f ResizeFix=%d "
-      "UnlockMaxWindowSize=%d",
+  GetPrivateProfileStringA("Fixes", "MouseLookScale", "1.0", buf, sizeof(buf), ini_path);
+  float scale = static_cast<float>(std::atof(buf));
+  if (scale > 0.0f && scale <= 20.0f) g_config.mouse_look_scale = scale;
+
+  Log("config: CpuSpeedFix=%d AspectMode=%d HorPlusBaseAspect=%.4f MouseLookFix=%d "
+      "MouseLookScale=%.2f PhysicsRateFix=%d PhysicsRate=%d ResizeFix=%d UnlockMaxWindowSize=%d",
       g_config.cpu_speed_fix, static_cast<int>(g_config.aspect_mode),
-      g_config.hor_plus_base_aspect, g_config.resize_fix, g_config.unlock_max_window_size);
+      g_config.hor_plus_base_aspect, g_config.mouse_look_fix, g_config.mouse_look_scale,
+      g_config.physics_rate_fix, g_config.physics_rate, g_config.resize_fix, g_config.unlock_max_window_size);
 }

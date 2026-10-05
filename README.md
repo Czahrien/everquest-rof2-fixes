@@ -9,6 +9,8 @@ memory at startup. No files are modified on disk.
 | --- | --- | --- |
 | `CpuSpeedFix` | Game runs too fast on Ryzen / fast CPUs | `EQG_GetCpuSpeed2/3` in `EQGraphicsDX9.dll` measure TSC ticks over ~1 s but keep only 32 bits, which wraps above ~4.29 GHz. Replaced with a 64-bit, QPC-timed measurement. |
 | `AspectMode` | Characters stretched horizontally on ultrawide (aspect ≥ 2.0) | `eqgame.exe` switches to a different FOV formula at aspect ≥ 2.0 and passes the camera a ratio of two angles instead of width/height (about 1.70 instead of 2.33 at 21:9). The bad branch is disabled; `HorPlus` also widens the horizontal FOV past 16:9. |
+| `MouseLookFix` | Right-click mouse-look turns slower the higher the frame rate | The mouse delta is stored as a turn *speed* that physics then multiplies by frame time, so turning scales with 1/fps. The turn is applied to the heading directly, scaled to match 30 fps (`MouseLookScale`). |
+| `PhysicsRateFix` | Jumps barely leave the ground, falls do little or no damage, and levitation descends slower at high FPS | Movement physics applies friction once per step while gravity scales with step length, and a collision pass after each step decides whether you are grounded. The local player's physics step is run at a fixed `PhysicsRate` (60 steps/s) regardless of frame rate, with the collision pass after each step. |
 | `ResizeFix` | Resizing the window (e.g. under Wine) stretches the image and the mouse no longer lines up | The client never changes resolution on `WM_SIZE`. The main window is subclassed and, once a resize settles, the new client size goes through the same `ApplyResolution` path as the options window. |
 
 Supports only the RoF2 `eqgame.exe` with PE timestamp `0x518DE58F` (2013-05-11) and

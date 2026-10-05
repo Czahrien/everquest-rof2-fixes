@@ -10,6 +10,10 @@ struct Config {
   bool cpu_speed_fix = true;
   AspectMode aspect_mode = AspectMode::HorPlus;
   float hor_plus_base_aspect = 16.0f / 9.0f;
+  bool mouse_look_fix = true;
+  float mouse_look_scale = 1.0f;
+  bool physics_rate_fix = true;
+  int physics_rate = 60;
   bool resize_fix = true;
   bool unlock_max_window_size = true;
 };
