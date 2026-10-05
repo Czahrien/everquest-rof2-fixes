@@ -50,6 +50,17 @@ If script execution is blocked, run them as
 Any of the tools can come from elsewhere instead: `ZIG` may point at a `zig.exe`, and
 `cmake`/`ninja` are picked up from `PATH` when the venv does not exist.
 
+### Comparing builds
+
+Rebuilding in the same directory gives a byte-identical DLL. Builds from different
+directories or hosts differ only in fields that identify the build (the PE
+`TimeDateStamp`, which is a content hash, and the debug directory's build ID). To check
+that two builds are otherwise identical:
+
+```bash
+python3 tools/compare-dll.py linux/dinput8.dll windows/dinput8.dll
+```
+
 ## Installing
 
 1. Copy `build/dinput8.dll` into the folder that contains `eqgame.exe`.

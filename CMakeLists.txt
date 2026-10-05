@@ -29,6 +29,8 @@ add_library(dinput8 SHARED
 set_target_properties(dinput8 PROPERTIES PREFIX "" OUTPUT_NAME dinput8)
 target_compile_definitions(dinput8 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(dinput8 PRIVATE -Wall -Wextra -fno-exceptions)
+# zig emits CodeView debug info by default, full of absolute paths; nothing uses it.
+target_compile_options(dinput8 PRIVATE -g0)
 target_link_libraries(dinput8 PRIVATE user32)
 # Don't depend on libgcc/libstdc++ DLLs being present next to eqgame.exe.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
