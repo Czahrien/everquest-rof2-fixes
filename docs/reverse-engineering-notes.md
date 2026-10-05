@@ -338,22 +338,52 @@ details matter for a system-wide resource like the cursor clip:
 
 **When the log says it worked but nothing changed.** The first test failed: the cursor
 still left the window. The log showed `ClipCursor` being called with the correct
-rectangle on every engage, so the DLL side was right and the problem was below it. Three
-environment checks found the cause:
+rectangle on every engage, so the DLL side was right and the problem was below it.
+Environment checks found a KDE Plasma Wayland session with the Lutris game on the system
+Wine, which uses the X11 driver through XWayland by default.
 
-- `XDG_SESSION_TYPE=wayland` (KDE Plasma);
-- the Lutris game config used the system Wine (11.18 Staging);
-- the prefix's `user.reg` had no `HKCU\Software\Wine\Drivers\Graphics` override, so Wine
-  ran its X11 driver through XWayland.
+**A wrong turn worth recording.** The first explanation was that XWayland ignores X11
+cursor confinement, and an A/B test seemed to confirm it: confinement worked after
+switching the prefix to Wine's native Wayland driver. It later turned out Lutris rewrites
+the prefix's `Graphics` setting on every launch, so it was unclear which driver some
+tests had actually used. The fix was to make the DLL log the driver it is running under
+(`GetModuleHandle("winex11.drv")` / `"winewayland.drv"`) and retest. On the X11 driver,
+confinement worked with one client, so the XWayland theory was wrong. Logging the
+environment from inside the process is cheap; inferring it from configuration that a
+launcher can silently override is not.
 
-XWayland doesn't let X11 clients confine or warp the pointer, which also explained why
-the client's own `SetCursorPos` restore failed. The A/B test settled it: switching the
-prefix to Wine's native Wayland driver (`Graphics=wayland`) made `ClipCursor` effective,
-and only the Wayland driver *plus* the clip kept the cursor in the window. Either one
-alone still let it escape.
+**Several clients.** With two clients, only the most recently started one confined the
+cursor. Two pieces of instrumentation narrowed it down:
 
-The general lesson: once logging proves the expected API call happened, stop reading
-the client's code and start checking the layers under it.
+1. **Per-client logs.** All clients had been writing one `rof2fixes.log`, and the run of
+   NUL bytes at its end was the sign of two processes overwriting each other. Logs are
+   now opened with `_fsopen(..., _SH_DENYWR)`, falling back to `rof2fixes.2.log`,
+   `.3.log` and so on. With separate logs, both clients showed the same correct
+   behavior: their own window in the foreground, and the same clip applied on every
+   engage. My guess that foreground tracking was wrong for the older client was ruled
+   out.
+2. **Wine's own trace** (`WINEDEBUG=+cursor`) plus Wine's source. win32u routes the clip
+   to the foreground thread. The X11 driver's `grab_clipping_window` first checks X input
+   focus, and both clients passed that check (`clipping to (0,42)-(3440,1395)` appears
+   for both). It then grabs the pointer with `confine_to` set to a clip window that is
+   *shared by every process on the Wine desktop*: `init_clip_window` reads it from a
+   property on the desktop window, and both traces show the same XID `3c00001`. The
+   older client's grab was demonstrably active (button events arrived on the clip
+   window), so the failure is in how XWayland and KWin translate that grab into real
+   confinement. A Windows DLL can't reach that layer.
+
+**Workaround: pin as well as clip.** XWayland has a separate path for games: when a
+client warps a hidden cursor, it locks the pointer and keeps delivering relative motion.
+Wine reads mouse-look from XInput2 raw motion, which warps don't disturb. So the DLL also
+moves the cursor back to the position the client saved at engage, every frame (`Pin`).
+Testing settled the combination: `Clip` alone covers only the newest client; `Pin` alone
+lets a fast flick escape between frames; `ClipAndPin` holds the cursor in every client,
+and it is now the default. Running clients in separate prefixes would also have avoided
+the shared clip window, but MacroQuest needs all clients on one wineserver.
+
+The general lesson: once logging proves the expected API call happened, stop reading the
+client's code and start checking the layers under it, and make the logs prove which
+layers are actually in play.
 
 ## Patching techniques used
 
@@ -393,6 +423,8 @@ Practical details:
 - Under Wine, a `dinput8.dll` proxy needs the `dinput8=n,b` override, and Lutris and a
   bare `wine` launch can behave differently. zig's compiler cache does not work under
   Wine at all, so the Windows build could only be smoke-tested there.
-- On a Wayland desktop, Wine's X11 driver (via XWayland) silently ignores `ClipCursor`
-  and `SetCursorPos`. Anything involving cursor position needs testing with the native
-  Wayland driver too, and on Windows.
+- Launchers can rewrite Wine settings on every start (Lutris resets `Graphics`). Have the
+  DLL log the environment it is really running in instead of trusting the configuration.
+- With several Wine processes on one desktop, cursor clipping under XWayland only takes
+  effect for the newest client, because every process grabs against one shared clip
+  window. Test cursor behavior with more than one client.

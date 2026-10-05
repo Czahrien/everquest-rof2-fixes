@@ -36,8 +36,12 @@ static const char kDefaultIni[] =
     "MouseLookFix=1\n"
     "; Turn speed multiplier. 1.0 matches the original feel at 30 fps.\n"
     "MouseLookScale=1.0\n"
-    "; Keep the hidden cursor inside the game window during mouse-look.\n"
-    "MouseLookConfine=1\n"
+    "; Keep the hidden cursor from wandering during mouse-look:\n"
+    ";   Off        - original behavior\n"
+    ";   Clip       - confine it to the game window (ClipCursor)\n"
+    ";   Pin        - hold it where mouse-look started (SetCursorPos every frame)\n"
+    ";   ClipAndPin - both (needed with several clients under Wine on Wayland)\n"
+    "MouseLookConfine=ClipAndPin\n"
     "\n"
     "; Run the player's movement physics at a fixed PhysicsRate steps per second.\n"
     "; Without this, jump height, falling, fall damage and levitation change with\n"
@@ -67,7 +71,6 @@ void LoadConfig(const char* ini_path) {
   g_config.extended_fps_slider = ReadBool(ini_path, "ExtendedFpsSlider", g_config.extended_fps_slider);
   g_config.vsync = ReadBool(ini_path, "VSync", g_config.vsync);
   g_config.mouse_look_fix = ReadBool(ini_path, "MouseLookFix", g_config.mouse_look_fix);
-  g_config.mouse_look_confine = ReadBool(ini_path, "MouseLookConfine", g_config.mouse_look_confine);
   g_config.physics_rate_fix = ReadBool(ini_path, "PhysicsRateFix", g_config.physics_rate_fix);
   int rate = GetPrivateProfileIntA("Fixes", "PhysicsRate", g_config.physics_rate, ini_path);
   if (rate >= 10 && rate <= 200) g_config.physics_rate = rate;
@@ -87,6 +90,16 @@ void LoadConfig(const char* ini_path) {
   GetPrivateProfileStringA("Fixes", "HorPlusBaseAspect", "1.7778", buf, sizeof(buf), ini_path);
   float base = static_cast<float>(std::atof(buf));
   if (base >= 1.0f && base <= 4.0f) g_config.hor_plus_base_aspect = base;
+
+  GetPrivateProfileStringA("Fixes", "MouseLookConfine", "ClipAndPin", buf, sizeof(buf), ini_path);
+  if (_stricmp(buf, "Off") == 0 || std::strcmp(buf, "0") == 0)
+    g_config.mouse_look_confine = kConfineOff;
+  else if (_stricmp(buf, "Clip") == 0)
+    g_config.mouse_look_confine = kConfineClip;
+  else if (_stricmp(buf, "Pin") == 0)
+    g_config.mouse_look_confine = kConfinePin;
+  else
+    g_config.mouse_look_confine = kConfineClip | kConfinePin;  // "ClipAndPin", "1", or unrecognized
 
   GetPrivateProfileStringA("Fixes", "MouseLookScale", "1.0", buf, sizeof(buf), ini_path);
   float scale = static_cast<float>(std::atof(buf));

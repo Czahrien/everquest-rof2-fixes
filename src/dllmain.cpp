@@ -58,8 +58,8 @@ std::string GameDirectory() {
 
 void Initialize() {
   std::string dir = GameDirectory();
-  LogOpen((dir + "\\rof2fixes.log").c_str());
-  Log("rof2-fixes starting in %s", dir.c_str());
+  LogOpen(dir.c_str());
+  Log("rof2-fixes starting in %s (process %lu)", dir.c_str(), GetCurrentProcessId());
   LoadConfig((dir + "\\rof2fixes.ini").c_str());
 
   uint32_t timestamp = mem::PeTimestamp(mem::EqgameBase());

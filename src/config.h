@@ -6,6 +6,13 @@ enum class AspectMode {
   HorPlus,  // fix the stretching and widen horizontal FOV beyond hor_plus_base_aspect
 };
 
+// Bit flags: how to keep the hidden cursor in place during mouse-look.
+enum MouseLookConfineMode : int {
+  kConfineOff = 0,
+  kConfineClip = 1,  // ClipCursor to the client area
+  kConfinePin = 2,   // move the cursor back to where mouse-look started, every frame
+};
+
 struct Config {
   bool cpu_speed_fix = true;
   AspectMode aspect_mode = AspectMode::HorPlus;
@@ -14,7 +21,7 @@ struct Config {
   bool vsync = false;
   bool mouse_look_fix = true;
   float mouse_look_scale = 1.0f;
-  bool mouse_look_confine = true;
+  int mouse_look_confine = kConfineClip | kConfinePin;
   bool physics_rate_fix = true;
   int physics_rate = 60;
   bool resize_fix = true;

@@ -93,6 +93,9 @@ constexpr uint32_t kLocalPhysicsTimeFactor = 0xDE0A68;
 // Mouse-look. The flag is set while right-click mouse-look has the cursor hidden; the
 // cursor position at engage is saved at [0x15D3D00]+0x130/0x134 and restored on release.
 constexpr uint32_t kMouseLookActive = 0xDDF702;  // byte
+constexpr uint32_t kCursorSaveHolderPtr = 0x15D3D00;  // object holding the saved position
+constexpr uint32_t kCursorSaveX = 0x130;              // screen coordinates
+constexpr uint32_t kCursorSaveY = 0x134;
 constexpr uint32_t kMainWindow = 0xE67B08;       // HWND returned by CreateWindowExA
 // Per-frame mouse input routine (DirectInput read; cdecl, no args) and its only call.
 constexpr uint32_t kProcessMouse = 0x5F9E30;

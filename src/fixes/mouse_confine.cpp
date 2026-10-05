@@ -6,9 +6,13 @@
 // keeps moving and can end up over another window or monitor. The client never calls
 // ClipCursor.
 //
-// Once per frame, after the client reads mouse input, we clip the cursor to the window's
-// client area while mouse-look is active and the game is in the foreground, and release
-// the clip as soon as either stops being true.
+// Once per frame, after the client reads mouse input, while mouse-look is active and the
+// game is in the foreground we can:
+//   Clip - ClipCursor to the client area, released as soon as either stops being true;
+//   Pin  - move the cursor back to where mouse-look started, like exclusive DirectInput
+//          does on Windows. Under Wine's X11 driver on XWayland, Clip only takes effect
+//          for the most recently started client; XWayland locks the pointer when a client
+//          warps a hidden cursor, which may cover the other clients.
 
 #include <windows.h>
 
@@ -34,17 +38,62 @@ T& Global(uint32_t address) {
 
 void Release() {
   if (!g_clipped) return;
+  Log("mouse_confine: released");
   ClipCursor(nullptr);
   g_clipped = false;
+}
+
+// Under Wine, cursor confinement depends on which display driver the process loaded.
+const char* DisplayDriver() {
+  if (GetModuleHandleA("winewayland.drv")) return "wine-wayland";
+  if (GetModuleHandleA("winex11.drv")) return "wine-x11";
+  if (GetModuleHandleA("winemac.drv")) return "wine-mac";
+  return "native";
+}
+
+bool g_was_pinning = false;
+
+void Pin(bool first_frame) {
+  auto* holder = Global<uint8_t*>(addr::kCursorSaveHolderPtr);
+  if (!holder) return;
+  POINT target = {*reinterpret_cast<LONG*>(holder + addr::kCursorSaveX),
+                  *reinterpret_cast<LONG*>(holder + addr::kCursorSaveY)};
+  POINT current;
+  if (!GetCursorPos(&current) || (current.x == target.x && current.y == target.y)) return;
+  BOOL ok = SetCursorPos(target.x, target.y);
+  static int logged_this_engage = 0;
+  if (first_frame) logged_this_engage = 0;
+  if (logged_this_engage < 2) {
+    ++logged_this_engage;
+    Log("mouse_confine: pinned cursor %ld,%ld -> %ld,%ld (%s)", current.x, current.y, target.x,
+        target.y, ok ? "ok" : "refused");
+  }
 }
 
 void Update() {
   HWND window = Global<HWND>(addr::kMainWindow);
   bool mouse_look = Global<uint8_t>(addr::kMouseLookActive) != 0;
-  if (!mouse_look || !window || GetForegroundWindow() != window || IsIconic(window)) {
+  HWND foreground = GetForegroundWindow();
+
+  static bool last_mouse_look = false;
+  static HWND last_foreground = nullptr;
+  if (mouse_look != last_mouse_look || (mouse_look && foreground != last_foreground)) {
+    Log("mouse_confine: mouse-look %s, window %p, foreground %p, focus %p, active %p, driver %s",
+        mouse_look ? "on" : "off", window, foreground, GetFocus(), GetActiveWindow(),
+        DisplayDriver());
+    last_mouse_look = mouse_look;
+    last_foreground = foreground;
+  }
+
+  if (!mouse_look || !window || foreground != window || IsIconic(window)) {
+    g_was_pinning = false;
     Release();
     return;
   }
+  if (g_config.mouse_look_confine & kConfinePin) Pin(mouse_look != g_was_pinning);
+  g_was_pinning = mouse_look;
+  if (!(g_config.mouse_look_confine & kConfineClip)) return;
+
   RECT client;
   GetClientRect(window, &client);
   MapWindowPoints(window, nullptr, reinterpret_cast<POINT*>(&client), 2);

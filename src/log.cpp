@@ -4,13 +4,22 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <share.h>
 
 static FILE* g_log = nullptr;
 static CRITICAL_SECTION g_lock;
 
-void LogOpen(const char* path) {
+void LogOpen(const char* directory) {
   InitializeCriticalSection(&g_lock);
-  g_log = std::fopen(path, "w");
+  char path[MAX_PATH];
+  for (int instance = 1; instance <= 16 && !g_log; ++instance) {
+    if (instance == 1)
+      std::snprintf(path, sizeof(path), "%s\\rof2fixes.log", directory);
+    else
+      std::snprintf(path, sizeof(path), "%s\\rof2fixes.%d.log", directory, instance);
+    // Deny other writers: a second instance fails here instead of truncating our log.
+    g_log = _fsopen(path, "w", _SH_DENYWR);
+  }
 }
 
 void Log(const char* fmt, ...) {
